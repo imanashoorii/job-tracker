@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from apps.authentication.choices import UserTypeChoices
-from apps.base.models import BaseModel, SoftDelete
+from apps.base.models import BaseModel
 
 
 class User(AbstractUser):

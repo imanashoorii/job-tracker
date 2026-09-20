@@ -94,7 +94,9 @@ class ApplicationViewSet(BaseMixin, LoggingViewSetMixin, viewsets.ModelViewSet):
     }
 
     def get_queryset(self):
-        return Application.objects.filter(board__user=self.request.user).select_related("board")
+        return Application.objects.filter(board__user=self.request.user).select_related(
+            "board"
+        )
 
     def perform_create(self, serializer):
         board = serializer.validated_data["board"]

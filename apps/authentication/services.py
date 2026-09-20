@@ -37,7 +37,9 @@ class UserServices:
         Creates a new user and returns a fresh access/refresh token pair,
         the same shape PasswordLoginSerializer returns on login.
         """
-        user = User.objects.create_user(username=username, email=email, password=password)
+        user = User.objects.create_user(
+            username=username, email=email, password=password
+        )
         access, refresh = cls.__generate_tokens(user)
         update_last_login(None, user)
         return access, refresh

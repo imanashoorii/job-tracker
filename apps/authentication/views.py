@@ -28,13 +28,17 @@ class PasswordLoginViewSet(BaseMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="login")
     def login(self, request):
-        serializer = self.get_serializer(data=request.data, context={"request": request})
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         return Response(data=serializer.validated_data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["post"], url_path="register")
     def register(self, request):
-        serializer = self.get_serializer(data=request.data, context={"request": request})
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         tokens = serializer.save()
         return Response(data=tokens, status=status.HTTP_201_CREATED)

@@ -55,7 +55,16 @@ class ApplicationSerializer(serializers.ModelSerializer):
 class ApplicationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ("id", "board", "company", "position", "status", "salary", "round", "notes")
+        fields = (
+            "id",
+            "board",
+            "company",
+            "position",
+            "status",
+            "salary",
+            "round",
+            "notes",
+        )
         read_only_fields = ("id",)
 
     def __init__(self, *args, **kwargs):

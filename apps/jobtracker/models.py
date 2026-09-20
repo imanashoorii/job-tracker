@@ -37,9 +37,7 @@ class Application(BaseModel, SoftDelete):
         choices=StatusChoices.choices,
         default=StatusChoices.APPLIED,
     )
-    salary = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True
-    )
+    salary = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     round = models.CharField(
         max_length=10,
         choices=RoundChoices.choices,

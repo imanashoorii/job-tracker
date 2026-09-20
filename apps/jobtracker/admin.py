@@ -13,8 +13,14 @@ class BoardAdmin(admin.ModelAdmin):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     list_display = (
-        "company", "position", "board", "status", "round",
-        "salary", "is_deleted", "updated_at",
+        "company",
+        "position",
+        "board",
+        "status",
+        "round",
+        "salary",
+        "is_deleted",
+        "updated_at",
     )
     list_filter = ("status", "round", "is_deleted", "board")
     search_fields = ("company", "position")

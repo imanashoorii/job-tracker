@@ -38,7 +38,9 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    password2 = serializers.CharField(write_only=True, min_length=8, label="Confirm password")
+    password2 = serializers.CharField(
+        write_only=True, min_length=8, label="Confirm password"
+    )
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -52,7 +54,9 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
-            raise serializers.ValidationError({"password2": UserMessages.PASSWORDS_DO_NOT_MATCH})
+            raise serializers.ValidationError(
+                {"password2": UserMessages.PASSWORDS_DO_NOT_MATCH}
+            )
         try:
             validate_password(attrs["password"])
         except DjangoValidationError as exc:
