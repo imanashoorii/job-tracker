@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log in — Job Tracker</title>
+  <link rel="stylesheet" href="{% static 'jobtracker/css/style.css' %}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1 class="auth-title">Log in</h1>
+      <p class="auth-subtitle">Track your job applications.</p>
+
+      <p class="auth-error" id="auth-error" hidden></p>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="identifier">Username or email</label>
+          <input type="text" id="identifier" name="identifier" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="auth-submit" id="submit-btn">Log in</button>
+      </form>
+
+      <p class="auth-footer">No account yet? <a href="{% url 'jobtracker:register' %}">Register</a></p>
+    </div>
+  </div>
+
+  <script src="{% static 'jobtracker/js/auth.js' %}"></script>
+  <script>
+    (function () {
+      if (window.Auth.AuthStore.isLoggedIn()) {
+        window.location.href = "{% url 'jobtracker:index' %}";
+        return;
+      }
+
+      const form = document.getElementById("login-form");
+      const errorEl = document.getElementById("auth-error");
+      const submitBtn = document.getElementById("submit-btn");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errorEl.hidden = true;
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Logging in…";
+
+        try {
+          const res = await fetch("/v1/auth/pass/login/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: document.getElementById("identifier").value.trim(),
+              password: document.getElementById("password").value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(window.Auth.formatApiError(data));
+          window.Auth.AuthStore.setTokens(data.access, data.refresh);
+          window.location.href = "{% url 'jobtracker:index' %}";
+        } catch (err) {
+          errorEl.textContent = err.message || "Login failed.";
+          errorEl.hidden = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Log in";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

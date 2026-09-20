@@ -1,0 +1,35 @@
+volumes:
+  job_tracker_db_data:
+    name: job_tracker_db_data
+
+networks:
+  job_tracker:
+    name: job_tracker
+
+services:
+  job_tracker_db:
+    image: postgres:18-alpine
+    container_name: job_tracker_db
+    hostname: job_tracker_db
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - job_tracker_db_data:/var/lib/postgresql
+    networks:
+      - job_tracker
+    environment:
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'admin'
+      POSTGRES_DB: 'tracker'
+      TZ: Europe/Berlin
+
+  job_tracker_cache:
+    image: redis:8-alpine
+    container_name: job_tracker_cache
+    hostname: job_tracker_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - job_tracker

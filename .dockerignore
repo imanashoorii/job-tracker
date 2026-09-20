@@ -1,0 +1,17 @@
+docker/
+.pre-commit-config.yaml
+env.sample
+.env
+.gitignore
+pyproject.toml
+setup.cfg
+.dockerignore
+.git
+.idea
+.mypy_cache
+docker-compose.yml
+docker-compose.prod.yml
+Dockerfile
+nginx
+venv
+db.env

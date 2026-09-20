@@ -1,0 +1,94 @@
+volumes:
+  nginx_conf:
+    name: nginx_conf
+  static_volume:
+    name: static_volume
+  postgres_data:
+    name: postgres_data
+
+networks:
+  app:
+    name: app
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    hostname: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    volumes:
+      - nginx_conf:/etc/nginx/conf.d/
+      - static_volume:/usr/src/app/static
+    networks:
+      - app
+    restart: always
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api
+    hostname: api
+    expose:
+      - 8000
+    networks:
+      - app
+    env_file:
+      - .env
+    volumes:
+      - static_volume:/usr/src/app/static
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
+    restart: always
+    depends_on:
+      - postgres
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: celery
+    hostname: celery
+    expose:
+      - 8000
+    networks:
+      - app
+    env_file:
+      - .env
+    command: celery -A core worker -l INFO
+    restart: always
+    depends_on:
+      - postgres
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: redis
+    hostname: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    hostname: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app
+    environment:
+      TZ: Europe/Berlin
+    env_file:
+      - db.env

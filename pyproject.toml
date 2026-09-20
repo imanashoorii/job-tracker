@@ -1,0 +1,36 @@
+[tool.black]
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.flake8]
+max-line-length = 119
+
+[tool.mypy]
+python_version = "3.11"
+files = "."
+follow_imports = "silent"
+ignore_missing_imports = true
+no_namespace_packages = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+disable_error_code = ["var-annotated"]
+
+[mypy.plugins.django-stubs]
+django_settings_module = "core.settings"
+
+[tool.django-stubs]
+django_settings_module = "core.settings"
+strict_settings = true

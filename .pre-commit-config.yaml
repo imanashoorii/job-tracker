@@ -1,0 +1,56 @@
+exclude: '.*migrations\/.*'
+default_language_version:
+  python: python3.11
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+       - id: end-of-file-fixer # ensures that code files have a single newline character at the end of the file
+       - id: trailing-whitespace # checks for and removes trailing whitespace from code files
+       - id: check-added-large-files # prevents giant files from being committed.
+       - id: check-case-conflict # checks for files that would conflict in case-insensitive filesystems.
+       - id: check-merge-conflict # checks for files that contain merge conflict strings.
+       - id: check-yaml # checks yaml files for parseable syntax.
+       - id: detect-private-key # detects the presence of private keys.
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args: [ --remove-all-unused-imports, --in-place ]
+
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.4
+    hooks:
+      - id: bandit
+        args: [ "-iii", "-ll" ]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        args: [ --config, setup.cfg ]
+
+  - repo: local
+    hooks:
+      - id: migrations-check
+        language: system
+        name: Check for uncreated migrations.
+        entry: sh -c "./manage.py makemigrations --check --dry-run"
+        files: "apps/.*/models\\.py$"
+        stages: [ pre-commit ]
+
+#  - repo: local
+#    hooks:
+#      - id: mypy
+#        name: mypy
+#        entry: mypy
+#        language: system
+#        types: [ python ]
