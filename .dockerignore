@@ -9,9 +9,11 @@ setup.cfg
 .git
 .idea
 .mypy_cache
-docker-compose.yml
+docker-compose.local.yml
 docker-compose.prod.yml
 Dockerfile
 nginx
 venv
 db.env
+LICENSE
+README.md
