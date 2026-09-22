@@ -28,7 +28,7 @@ directly by Django - no separate frontend build step required.
 - **Activity logging** - every create/update/delete on a board or
   application is recorded (who, what, when, what changed).
 - **Per-endpoint throttling** - separate rate limits for auth, board, and
-  application endpoints.
+  application endpoints, each set directly on its throttle class.
 
 ## Tech stack
 
@@ -41,6 +41,7 @@ directly by Django - no separate frontend build step required.
 | Background tasks | Celery |
 | Filtering | `django-filter` |
 | Frontend | Django templates + vanilla JS (no build step, no framework) |
+| Deployment | Docker Compose + Nginx + Gunicorn |
 
 ## Project structure
 
@@ -68,7 +69,14 @@ directly by Django - no separate frontend build step required.
 │           └── tracker.js # boards/applications UI, pagination, modal
 ├── core/
 │   ├── settings.py
-│   └── urls.py
+│   ├── urls.py
+│   └── celery.py
+├── nginx/                # reverse proxy config for production
+├── Dockerfile
+├── docker-compose.local.yml   # Postgres + Redis only, for local dev
+├── docker-compose.prod.yml    # full stack: nginx, api, celery, redis, postgres
+├── entrypoint.sh          # migrate → collectstatic → start server
+├── .pre-commit-config.yaml
 └── manage.py
 ```
 
@@ -76,8 +84,7 @@ directly by Django - no separate frontend build step required.
 
 ### 1. Prerequisites
 - Python 3.12+
-- PostgreSQL
-- Redis
+- Docker (recommended, for Postgres/Redis) - or a local PostgreSQL + Redis install
 
 ### 2. Install
 
@@ -91,23 +98,50 @@ pip install -r requirements.txt
 
 ### 3. Configure environment
 
-Create a `.env` file in the project root:
+Copy `.env.sample` to `.env` and fill it in:
+
+```bash
+cp .env.sample .env
+```
 
 ```env
-SECRET_KEY=change-me
+########### DJANGO CONFIGURATION ###########
 DEBUG=True
+APP_NAME=tracker
+TRA_DOMAIN=localhost
+SECRET_KEY=change-me
 
-DB_NAME=jobtracker
-DB_USER=jobtracker
-DB_PASSWORD=jobtracker
-DB_HOST=localhost
-DB_PORT=5432
+########### DB CONFIGURATION ###########
+POSTGRES_DB=tracker
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin
 
+########### CACHE CONFIGURATION ###########
 REDIS_HOST=localhost
 REDIS_PORT=6379
 ```
 
-### 4. Migrate and run
+`ALLOWED_HOSTS` also reads from the environment (`ALLOWED_HOSTS=host1,host2`)
+and defaults to `["*"]` if unset - fine for local dev, worth tightening for
+a real deployment.
+
+### 4. Start Postgres + Redis
+
+The easiest way locally is the bundled compose file, which brings up just
+the database and cache (not the app itself):
+
+```bash
+docker compose -f docker-compose.local.yml up -d
+```
+
+This matches the `POSTGRES_USER=admin` / `POSTGRES_PASSWORD=admin` /
+`POSTGRES_DB=tracker` values above, on `localhost:5432` and
+`localhost:6379`. If you'd rather run Postgres/Redis natively, just point
+the `.env` values at wherever they're listening.
+
+### 5. Migrate and run
 
 ```bash
 python manage.py migrate
@@ -115,7 +149,21 @@ python manage.py runserver
 ```
 
 Open **http://127.0.0.1:8000/** - you'll land on the tracker page, which
-redirects to **/register/** if you're not logged in yet.
+redirects to **/login/** if you're not logged in yet.
+
+## Running with Docker (full stack)
+
+`docker-compose.prod.yml` runs the whole thing - Nginx, the Django app
+(via Gunicorn), Celery, Redis, and Postgres - using the same `.env`:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+`entrypoint.sh` runs automatically on container start: it waits for
+Postgres, runs migrations, collects static files, then hands off to
+Gunicorn. Nginx proxies `/` to the app and serves `/static/` directly from
+the shared `static_volume`.
 
 ## API reference
 
@@ -131,22 +179,22 @@ on errors (from the shared exception handler).
 | `POST` | `/v1/auth/refresh/` | none | `{refresh}` → `{access}` |
 | `POST` | `/v1/auth/logout/` | none | `{refresh}` - blacklists the refresh token |
 
-### JobTracker - `/v1/job/`
+### JobTracker - `/v1/jobtracker/`
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/v1/job/boards/` | List your boards, each with `applications_count` |
-| `POST` | `/v1/job/boards/` | Create a board. `{"name": ""}` auto-names it "Job Tracker N" |
-| `PATCH` | `/v1/job/boards/<id>/` | Rename |
-| `DELETE` | `/v1/job/boards/<id>/` | Delete (blocked if it's your last board) |
-| `GET` | `/v1/job/applications/?board=<id>&page=&page_size=&status=` | Paginated list |
-| `POST` | `/v1/job/applications/` | Create. `{board, company, position, status, salary, round, notes}` |
-| `PATCH` | `/v1/job/applications/<id>/` | Partial update (any field except `board`) |
-| `DELETE` | `/v1/job/applications/<id>/` | Delete (soft) |
+| `GET` | `/v1/jobtracker/boards/` | List your boards, each with `applications_count` |
+| `POST` | `/v1/jobtracker/boards/` | Create a board. `{"name": ""}` auto-names it "Job Tracker N" |
+| `PATCH` | `/v1/jobtracker/boards/<id>/` | Rename |
+| `DELETE` | `/v1/jobtracker/boards/<id>/` | Delete (blocked if it's your last board) |
+| `GET` | `/v1/jobtracker/applications/?board=<id>&page=&page_size=&status=` | Paginated list |
+| `POST` | `/v1/jobtracker/applications/` | Create. `{board, company, position, status, salary, round, notes}` |
+| `PATCH` | `/v1/jobtracker/applications/<id>/` | Partial update (any field except `board`) |
+| `DELETE` | `/v1/jobtracker/applications/<id>/` | Delete (soft) |
 
-All `/v1/job/` endpoints require `Authorization: Bearer <access token>`
-and only ever return/modify the authenticated user's own boards and
-applications.
+All `/v1/jobtracker/` endpoints require `Authorization: Bearer <access
+token>` and only ever return/modify the authenticated user's own boards
+and applications.
 
 ## Frontend routes
 
@@ -170,6 +218,10 @@ applications.
   reads `serializer_classes_by_action` / `permission_classes_by_action` /
   `throttle_classes_by_action` dicts keyed by DRF action name
   (`list`, `create`, `retrieve`, `partial_update`, ...).
+- **Throttle rates live on the throttle class**, not in
+  `DEFAULT_THROTTLE_RATES` - e.g. `BoardAPIRateThrottle.rate = "120/min"`
+  - so adding a new scoped throttle doesn't require touching
+  `core/settings.py`.
 - **Colors are a frontend concern** - the API returns plain status/round
   values plus a human-readable `*_display` label; the color palette
   lives in `tracker.js` and should be kept in sync with
@@ -180,6 +232,15 @@ applications.
 Contributions are welcome - feel free to open a PR. For anything bigger
 than a small fix, opening an issue first to discuss the change is
 appreciated but not required.
+
+This repo uses [pre-commit](https://pre-commit.com) (black, flake8,
+autoflake, bandit, plus a check that you haven't forgotten a migration).
+Install the hooks once after cloning:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
 
 ## License
 
