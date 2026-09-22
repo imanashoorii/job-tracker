@@ -1,4 +1,4 @@
-FROM python:3.11-slim-buster
+FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -8,7 +8,7 @@ WORKDIR /usr/src/app/
 
 RUN apt-get update && apt-get -y dist-upgrade
 RUN apt-get install -y \
-    netcat \
+    netcat-openbsd \
     build-essential \
     libpq-dev \
     vim \
