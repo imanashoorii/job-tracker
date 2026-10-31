@@ -94,3 +94,4 @@ db.env
 db.sqlite3
 
 .idea/
+.vscode/launch.json
